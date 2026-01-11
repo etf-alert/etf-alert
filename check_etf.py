@@ -4,11 +4,8 @@ import requests
 import os
 import matplotlib.pyplot as plt
 
-# =====================
-# 환경 변수
-# =====================
-BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
-CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
+BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
+CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 
 TICKERS = ["QQQ", "QLD"]
 DAYS = 300
@@ -17,36 +14,28 @@ STATE_FILE = "state.csv"
 def v(x):
     return float(x.iloc[0]) if hasattr(x, "iloc") else float(x)
 
-# =====================
-# 텔레그램 전송
-# =====================
 def send_message(text):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
     requests.post(url, data={"chat_id": CHAT_ID, "text": text})
 
-def send_photo(caption, image_path):
+def send_photo(caption, path):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto"
-    with open(image_path, "rb") as f:
+    with open(path, "rb") as f:
         requests.post(
             url,
             data={"chat_id": CHAT_ID, "caption": caption},
             files={"photo": f},
         )
 
-# =====================
-# RSI 계산
-# =====================
 def calc_rsi(series, period=14):
     delta = series.diff()
     gain = delta.clip(lower=0)
     loss = -delta.clip(upper=0)
-    avg_gain = gain.rolling(period).mean()
-    avg_loss = loss.rolling(period).mean()
-    rs = avg_gain / avg_loss
+    rs = gain.rolling(period).mean() / loss.rolling(period).mean()
     return 100 - (100 / (1 + rs))
 
 # =====================
-# 상태 로드
+# State 로드
 # =====================
 if os.path.exists(STATE_FILE):
     state = pd.read_csv(STATE_FILE)
@@ -68,62 +57,74 @@ for ticker in TICKERS:
     prev = df.iloc[-2]
     last = df.iloc[-1]
 
-    close = float(last["Close"])
-    ma60 = float(last["MA60"])
-    ma120 = float(last["MA120"])
-    rsi = float(last["RSI"])
+    close = v(last["Close"])
+    ma60 = v(last["MA60"])
+    ma120 = v(last["MA120"])
+    rsi = v(last["RSI"])
+
+    prev_close = v(prev["Close"])
+    prev_ma60 = v(prev["MA60"])
+    prev_ma120 = v(prev["MA120"])
 
     row = state[state["Ticker"] == ticker]
 
-    # =====================
-    # Stage 판단 (우선순위)
-    # =====================
     new_stage = None
     new_days = 0
-    msg = ""
+    message = None
 
-    # 3차: RSI
+    # ===== 3차 (최우선) =====
     if close < ma120 and rsi <= 30:
         new_stage = "RSI"
         new_days = 40
-        msg = (
-            f"🔥 {ticker}\n"
-            f"RSI {rsi:.1f} (30 이하)\n"
-            f"MA120 아래에서 RSI 30이하\n"
-            f"➡️ 3차 매수 시작 (잔여금 / 40일)"
+        message = (
+            f"🔥 {ticker} 3차 매수 재개\n"
+            f"RSI {rsi:.1f} ≤ 30\n"
+            f"MA120 하단 유지\n"
+            f"➡️ 잔여금 / 40거래일 분할 (Day 1)"
         )
 
-    # 2차: MA120
-    elif prev["Close"] > prev["MA120"] and close <= ma120:
+    # ===== 2차 =====
+    elif prev_close > prev_ma120 and close <= ma120:
         new_stage = "MA120"
         new_days = 5
-        msg = (
-            f"📉 {ticker}\n"
-            f"MA120 터치\n"
-            f"➡️ 2차 매수 시작 (50% / 5일)"
+        message = (
+            f"📉 {ticker} MA120 하향 돌파\n"
+            f"➡️ 2차 매수 시작\n"
+            f"50% / 5거래일"
         )
 
-    # 1차: MA60
-    elif prev["Close"] > prev["MA60"] and close <= ma60:
+    # ===== 1차 =====
+    elif prev_close > prev_ma60 and close <= ma60:
         new_stage = "MA60"
         new_days = 5
-        msg = (
-            f"📉 {ticker}\n"
-            f"MA60 터치\n"
-            f"➡️ 1차 매수 시작 (50% / 5일)"
+        message = (
+            f"📉 {ticker} MA60 하향 돌파\n"
+            f"➡️ 1차 매수 시작\n"
+            f"50% / 5거래일"
         )
 
-    # =====================
-    # 새 Stage 시작 → 기존 Stage 즉시 종료
-    # =====================
+    # ===== 새 Stage 시작 =====
     if new_stage:
         state = state[state["Ticker"] != ticker]
         state.loc[len(state)] = [ticker, new_stage, new_days]
-        send_message(msg)
 
-    # =====================
-    # 분할매수 진행 알림
-    # =====================
+        plt.figure(figsize=(10, 6))
+        plt.plot(df["Close"], label="Close")
+        plt.plot(df["MA60"], label="MA60")
+        plt.plot(df["MA120"], label="MA120")
+        plt.legend()
+        plt.title(f"{ticker} Daily Chart")
+
+        img = f"{ticker}.png"
+        plt.savefig(img)
+        plt.close()
+
+        send_photo(
+            message + f"\n\n종가: {close:.2f}\nRSI: {rsi:.1f}",
+            img,
+        )
+
+    # ===== 분할 진행 =====
     elif not row.empty:
         idx = row.index[0]
         stage = row.iloc[0]["Stage"]
@@ -131,30 +132,12 @@ for ticker in TICKERS:
 
         if days > 0:
             send_message(
-                f"📆 {ticker} 분할매수 진행 중\n"
-                f"단계: {stage}\n"
-                f"남은 일수: {days}"
+                f"📆 {ticker} 분할매수 진행\n"
+                f"Stage: {stage}\n"
+                f"남은 거래일: {days}"
             )
             state.loc[idx, "DaysLeft"] = days - 1
         else:
             state = state.drop(idx)
-
-    # =====================
-    # 차트 생성
-    # =====================
-    plt.figure(figsize=(10, 6))
-    plt.plot(df["Close"], label="Close")
-    plt.plot(df["MA60"], label="MA60")
-    plt.plot(df["MA120"], label="MA120")
-    plt.legend()
-    plt.title(f"{ticker} Daily Chart")
-    img = f"{ticker}.png"
-    plt.savefig(img)
-    plt.close()
-
-    send_photo(
-        f"{ticker}\n종가: {close:.2f}\nRSI: {rsi:.1f}",
-        img,
-    )
 
 save_state()
