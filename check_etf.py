@@ -202,7 +202,7 @@ for ticker in TICKERS:
         plt.close()
 
         send_message(
-            f"📅 {TODAY}\n"
+            f"📅📆🗓️⏰⏱️ {TODAY}\n"
             f"🧪 차트 테스트 전송: {ticker}")
         send_photo(
             f"{ticker}\n"
