@@ -3,7 +3,6 @@ import pandas as pd
 import requests
 import os
 import matplotlib.pyplot as plt
-from datetime import datetime
 
 # =====================
 # 환경 변수
@@ -13,7 +12,6 @@ CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 
 TICKERS = ["QQQ", "QLD"]
 DAYS = 300
-
 STATE_FILE = "state.csv"
 
 # =====================
@@ -26,7 +24,11 @@ def send_message(text):
 def send_photo(caption, image_path):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto"
     with open(image_path, "rb") as f:
-        requests.post(url, data={"chat_id": CHAT_ID, "caption": caption}, files={"photo": f})
+        requests.post(
+            url,
+            data={"chat_id": CHAT_ID, "caption": caption},
+            files={"photo": f},
+        )
 
 # =====================
 # RSI 계산
@@ -41,7 +43,7 @@ def calc_rsi(series, period=14):
     return 100 - (100 / (1 + rs))
 
 # =====================
-# 상태 저장 / 로드
+# 상태 로드
 # =====================
 if os.path.exists(STATE_FILE):
     state = pd.read_csv(STATE_FILE)
@@ -71,39 +73,65 @@ for ticker in TICKERS:
     row = state[state["Ticker"] == ticker]
 
     # =====================
-    # 1차 MA60 터치
+    # Stage 판단 (우선순위)
     # =====================
-    if prev["Close"] > prev["MA60"] and close <= ma60:
-        send_message(f"📉 {ticker} MA60 하향 터치\n1차 매수 시작 (50% / 5일)")
-        state = state[state["Ticker"] != ticker]
-        state.loc[len(state)] = [ticker, "MA60", 5]
+    new_stage = None
+    new_days = 0
+    msg = ""
 
-    # =====================
-    # 2차 MA120 터치
-    # =====================
-    if prev["Close"] > prev["MA120"] and close <= ma120:
-        send_message(f"📉 {ticker} MA120 하향 터치\n2차 매수 시작 (50% / 5일)")
-        state = state[state["Ticker"] != ticker]
-        state.loc[len(state)] = [ticker, "MA120", 5]
-
-    # =====================
-    # 3차 RSI
-    # =====================
+    # 3차: RSI
     if close < ma120 and rsi <= 30:
-        send_message(f"🔥 {ticker} RSI {rsi:.1f}\n3차 매수 시작 (잔여금 / 40일)")
-        state = state[state["Ticker"] != ticker]
-        state.loc[len(state)] = [ticker, "RSI", 40]
+        new_stage = "RSI"
+        new_days = 40
+        msg = (
+            f"🔥 {ticker}\n"
+            f"RSI {rsi:.1f} (30 이하)\n"
+            f"MA120 하단 유지\n"
+            f"➡️ 3차 매수 시작 (잔여금 / 40일)"
+        )
+
+    # 2차: MA120
+    elif prev["Close"] > prev["MA120"] and close <= ma120:
+        new_stage = "MA120"
+        new_days = 5
+        msg = (
+            f"📉 {ticker}\n"
+            f"MA120 하향 이탈\n"
+            f"➡️ 2차 매수 시작 (50% / 5일)"
+        )
+
+    # 1차: MA60
+    elif prev["Close"] > prev["MA60"] and close <= ma60:
+        new_stage = "MA60"
+        new_days = 5
+        msg = (
+            f"📉 {ticker}\n"
+            f"MA60 하향 이탈\n"
+            f"➡️ 1차 매수 시작 (50% / 5일)"
+        )
 
     # =====================
-    # 분할 매수 진행 알림
+    # 새 Stage 시작 → 기존 Stage 즉시 종료
     # =====================
-    if not row.empty:
+    if new_stage:
+        state = state[state["Ticker"] != ticker]
+        state.loc[len(state)] = [ticker, new_stage, new_days]
+        send_message(msg)
+
+    # =====================
+    # 분할매수 진행 알림
+    # =====================
+    elif not row.empty:
         idx = row.index[0]
         stage = row.iloc[0]["Stage"]
         days = int(row.iloc[0]["DaysLeft"])
 
         if days > 0:
-            send_message(f"📆 {ticker} 분할매수 진행 중\n단계: {stage}\n남은 일수: {days}")
+            send_message(
+                f"📆 {ticker} 분할매수 진행 중\n"
+                f"단계: {stage}\n"
+                f"남은 일수: {days}"
+            )
             state.loc[idx, "DaysLeft"] = days - 1
         else:
             state = state.drop(idx)
@@ -123,7 +151,7 @@ for ticker in TICKERS:
 
     send_photo(
         f"{ticker}\n종가: {close:.2f}\nRSI: {rsi:.1f}",
-        img
+        img,
     )
 
 save_state()
