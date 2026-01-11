@@ -3,28 +3,30 @@ import pandas as pd
 import requests
 import os
 import matplotlib.pyplot as plt
+from datetime import datetime
 
 # =====================
-# 설정값
+# 환경 변수
 # =====================
-TICKERS = ["QQQ", "QLD"]
-DAYS = 200
-TOUCH_THRESHOLD = 5  # 0.3% 기준 (MA 근접 알림)
-
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 
+TICKERS = ["QQQ", "QLD"]
+DAYS = 300
+
+STATE_FILE = "state.csv"
+
 # =====================
-# 텔레그램 전송 함수
+# 텔레그램 전송
 # =====================
-def send_telegram_photo(msg, image_path):
+def send_message(text):
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+    requests.post(url, data={"chat_id": CHAT_ID, "text": text})
+
+def send_photo(caption, image_path):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto"
-    with open(image_path, "rb") as img:
-        requests.post(
-            url,
-            data={"chat_id": CHAT_ID, "caption": msg},
-            files={"photo": img}
-        )
+    with open(image_path, "rb") as f:
+        requests.post(url, data={"chat_id": CHAT_ID, "caption": caption}, files={"photo": f})
 
 # =====================
 # RSI 계산
@@ -33,85 +35,95 @@ def calc_rsi(series, period=14):
     delta = series.diff()
     gain = delta.clip(lower=0)
     loss = -delta.clip(upper=0)
-
     avg_gain = gain.rolling(period).mean()
     avg_loss = loss.rolling(period).mean()
-
     rs = avg_gain / avg_loss
-    rsi = 100 - (100 / (1 + rs))
-    return rsi
+    return 100 - (100 / (1 + rs))
 
 # =====================
-# 차트 생성 (가격 + MA + RSI)
+# 상태 저장 / 로드
 # =====================
-def make_chart(df, ticker):
-    recent = df.tail(120).copy()
-    recent["RSI"] = calc_rsi(recent["Close"])
+if os.path.exists(STATE_FILE):
+    state = pd.read_csv(STATE_FILE)
+else:
+    state = pd.DataFrame(columns=["Ticker", "Stage", "DaysLeft"])
 
-    fig, (ax1, ax2) = plt.subplots(
-        2, 1, figsize=(9, 6), sharex=True,
-        gridspec_kw={"height_ratios": [3, 1]}
-    )
+def save_state():
+    state.to_csv(STATE_FILE, index=False)
 
-    # 📈 가격 + MA60 + MA120
-    ax1.plot(recent.index, recent["Close"], label="Close", linewidth=2)
-    ax1.plot(recent.index, recent["MA60"], label="MA60", linestyle="--")
-    ax1.plot(recent.index, recent["MA120"], label="MA120", linestyle="--")
-    ax1.set_title(f"{ticker} (Daily)")
-    ax1.legend()
-    ax1.grid(True)
-
-    # 📉 RSI
-    ax2.plot(recent.index, recent["RSI"], color="purple", linewidth=1.5)
-    ax2.axhline(70, color="red", linestyle="--", linewidth=1)
-    ax2.axhline(30, color="blue", linestyle="--", linewidth=1)
-    ax2.set_ylim(0, 100)
-    ax2.set_ylabel("RSI")
-    ax2.grid(True)
-
-    filename = f"{ticker}_MA60_MA120_RSI.png"
-    plt.tight_layout()
-    plt.savefig(filename)
-    plt.close()
-
-    return filename
-    
 # =====================
 # 메인 로직
 # =====================
 for ticker in TICKERS:
     df = yf.download(ticker, period=f"{DAYS}d", interval="1d")
-
     df["MA60"] = df["Close"].rolling(60).mean()
     df["MA120"] = df["Close"].rolling(120).mean()
+    df["RSI"] = calc_rsi(df["Close"])
 
-    today = df.iloc[-1]
-    yesterday = df.iloc[-2]
+    prev = df.iloc[-2]
+    last = df.iloc[-1]
 
-    close_today = float(today["Close"])
-    close_yesterday = float(yesterday["Close"])
+    close = float(last["Close"])
+    ma60 = float(last["MA60"])
+    ma120 = float(last["MA120"])
+    rsi = float(last["RSI"])
 
-    for ma_name in ["MA60", "MA120"]:
-        ma_today = float(today[ma_name])
-        ma_yesterday = float(yesterday[ma_name])
+    row = state[state["Ticker"] == ticker]
 
-        # 📍 1️⃣ MA 근접 알림
-        diff = abs(close_today - ma_today) / ma_today * 100
-        if diff <= TOUCH_THRESHOLD:
-            img = make_chart(df, ticker)
-            send_telegram_photo(
-                f"📍 {ticker} {ma_name} 근접\n"
-                f"종가: {close_today:.2f}\n"
-                f"{ma_name}: {ma_today:.2f}",
-                img
-            )
+    # =====================
+    # 1차 MA60 터치
+    # =====================
+    if prev["Close"] > prev["MA60"] and close <= ma60:
+        send_message(f"📉 {ticker} MA60 하향 터치\n1차 매수 시작 (50% / 5일)")
+        state = state[state["Ticker"] != ticker]
+        state.loc[len(state)] = [ticker, "MA60", 5]
 
-        # 🚨 2️⃣ 하락 이탈 알림 (위 → 아래, 1회)
-        elif close_yesterday >= ma_yesterday and close_today < ma_today:
-            img = make_chart(df, ticker)
-            send_telegram_photo(
-                f"🚨 {ticker} {ma_name} 하락 이탈\n"
-                f"종가: {close_today:.2f}\n"
-                f"{ma_name}: {ma_today:.2f}",
-                img
-            )
+    # =====================
+    # 2차 MA120 터치
+    # =====================
+    if prev["Close"] > prev["MA120"] and close <= ma120:
+        send_message(f"📉 {ticker} MA120 하향 터치\n2차 매수 시작 (50% / 5일)")
+        state = state[state["Ticker"] != ticker]
+        state.loc[len(state)] = [ticker, "MA120", 5]
+
+    # =====================
+    # 3차 RSI
+    # =====================
+    if close < ma120 and rsi <= 30:
+        send_message(f"🔥 {ticker} RSI {rsi:.1f}\n3차 매수 시작 (잔여금 / 40일)")
+        state = state[state["Ticker"] != ticker]
+        state.loc[len(state)] = [ticker, "RSI", 40]
+
+    # =====================
+    # 분할 매수 진행 알림
+    # =====================
+    if not row.empty:
+        idx = row.index[0]
+        stage = row.iloc[0]["Stage"]
+        days = int(row.iloc[0]["DaysLeft"])
+
+        if days > 0:
+            send_message(f"📆 {ticker} 분할매수 진행 중\n단계: {stage}\n남은 일수: {days}")
+            state.loc[idx, "DaysLeft"] = days - 1
+        else:
+            state = state.drop(idx)
+
+    # =====================
+    # 차트 생성
+    # =====================
+    plt.figure(figsize=(10, 6))
+    plt.plot(df["Close"], label="Close")
+    plt.plot(df["MA60"], label="MA60")
+    plt.plot(df["MA120"], label="MA120")
+    plt.legend()
+    plt.title(f"{ticker} Daily Chart")
+    img = f"{ticker}.png"
+    plt.savefig(img)
+    plt.close()
+
+    send_photo(
+        f"{ticker}\n종가: {close:.2f}\nRSI: {rsi:.1f}",
+        img
+    )
+
+save_state()
