@@ -1,3 +1,4 @@
+send_telegram("✅ 테스트 메시지")
 import yfinance as yf
 import pandas as pd
 import requests
