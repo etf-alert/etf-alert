@@ -168,6 +168,7 @@ for ticker in TICKERS:
             
     # ===== 강제 차트 테스트 =====
     if FORCE_TEST:
+        img = f"{ticker}.png" 
         fig, (ax1, ax2) = plt.subplots(
         2, 1, figsize=(10, 8),
         gridspec_kw={"height_ratios": [3, 1]},
