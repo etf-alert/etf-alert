@@ -1,0 +1,50 @@
+name: ETF Stage Alert
+
+on:
+  schedule:
+    # 한국시간 기준 오전 7시 = UTC 22시 (미국장 마감 이후)
+    - cron: "0 22 * * 1-5"
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1️⃣ 저장소 코드 체크아웃
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2️⃣ Python 환경 세팅
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # 3️⃣ 필요한 패키지 설치
+      - name: Install dependencies
+        run: |
+          pip install yfinance pandas requests matplotlib
+
+      # 4️⃣ 이전 state.csv 다운로드 (없어도 에러 안 나게)
+      - name: Download state
+        uses: actions/download-artifact@v4
+        with:
+          name: state
+          path: .
+        continue-on-error: true
+
+      # 5️⃣ 메인 스크립트 실행
+      - name: Run ETF alert script
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python check_etf.py
+
+      # 6️⃣ 실행 후 state.csv 업로드 (다음 실행을 위해)
+      - name: Upload state
+        uses: actions/upload-artifact@v4
+        with:
+          name: state
+          path: state.csv
