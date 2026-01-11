@@ -44,7 +44,7 @@ def calc_rsi(series, period=14):
 # =====================
 # 차트 생성 (가격 + MA + RSI)
 # =====================
-def make_chart(df, ticker, ma_name):
+def make_chart(df, ticker):
     recent = df.tail(120).copy()
     recent["RSI"] = calc_rsi(recent["Close"])
 
@@ -53,14 +53,15 @@ def make_chart(df, ticker, ma_name):
         gridspec_kw={"height_ratios": [3, 1]}
     )
 
-    # 가격 + MA
+    # 📈 가격 + MA60 + MA120
     ax1.plot(recent.index, recent["Close"], label="Close", linewidth=2)
-    ax1.plot(recent.index, recent[ma_name], label=ma_name, linestyle="--")
-    ax1.set_title(f"{ticker} - {ma_name}")
+    ax1.plot(recent.index, recent["MA60"], label="MA60", linestyle="--")
+    ax1.plot(recent.index, recent["MA120"], label="MA120", linestyle="--")
+    ax1.set_title(f"{ticker} (Daily)")
     ax1.legend()
     ax1.grid(True)
 
-    # RSI
+    # 📉 RSI
     ax2.plot(recent.index, recent["RSI"], color="purple", linewidth=1.5)
     ax2.axhline(70, color="red", linestyle="--", linewidth=1)
     ax2.axhline(30, color="blue", linestyle="--", linewidth=1)
@@ -68,13 +69,13 @@ def make_chart(df, ticker, ma_name):
     ax2.set_ylabel("RSI")
     ax2.grid(True)
 
-    filename = f"{ticker}_{ma_name}_RSI.png"
+    filename = f"{ticker}_MA60_MA120_RSI.png"
     plt.tight_layout()
     plt.savefig(filename)
     plt.close()
 
     return filename
-
+    
 # =====================
 # 메인 로직
 # =====================
@@ -97,7 +98,7 @@ for ticker in TICKERS:
         # 📍 1️⃣ MA 근접 알림
         diff = abs(close_today - ma_today) / ma_today * 100
         if diff <= TOUCH_THRESHOLD:
-            img = make_chart(df, ticker, ma_name)
+            img = make_chart(df, ticker)
             send_telegram_photo(
                 f"📍 {ticker} {ma_name} 근접\n"
                 f"종가: {close_today:.2f}\n"
@@ -107,7 +108,7 @@ for ticker in TICKERS:
 
         # 🚨 2️⃣ 하락 이탈 알림 (위 → 아래, 1회)
         elif close_yesterday >= ma_yesterday and close_today < ma_today:
-            img = make_chart(df, ticker, ma_name)
+            img = make_chart(df, ticker)
             send_telegram_photo(
                 f"🚨 {ticker} {ma_name} 하락 이탈\n"
                 f"종가: {close_today:.2f}\n"
