@@ -89,7 +89,7 @@ for ticker in TICKERS:
         msg = (
             f"🔥 {ticker}\n"
             f"RSI {rsi:.1f} (30 이하)\n"
-            f"MA120 하단 유지\n"
+            f"MA120 아래에서 RSI 30이하\n"
             f"➡️ 3차 매수 시작 (잔여금 / 40일)"
         )
 
@@ -99,7 +99,7 @@ for ticker in TICKERS:
         new_days = 5
         msg = (
             f"📉 {ticker}\n"
-            f"MA120 하향 이탈\n"
+            f"MA120 터치\n"
             f"➡️ 2차 매수 시작 (50% / 5일)"
         )
 
@@ -109,7 +109,7 @@ for ticker in TICKERS:
         new_days = 5
         msg = (
             f"📉 {ticker}\n"
-            f"MA60 하향 이탈\n"
+            f"MA60 터치\n"
             f"➡️ 1차 매수 시작 (50% / 5일)"
         )
 
