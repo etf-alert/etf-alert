@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 # =====================
 TICKERS = ["QQQ", "QLD"]
 DAYS = 200
-TOUCH_THRESHOLD = 0.3  # % 기준 (MA 근접 알림)
+TOUCH_THRESHOLD = 5  # 0.3% 기준 (MA 근접 알림)
 
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
