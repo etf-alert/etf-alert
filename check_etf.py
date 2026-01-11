@@ -2,6 +2,8 @@ import yfinance as yf
 import pandas as pd
 import requests
 import os
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
@@ -10,6 +12,7 @@ CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 TICKERS = ["QQQ", "QLD"]
 DAYS = 300
 STATE_FILE = "state.csv"
+FORCE_TEST = True   # 👈 테스트 끝나면 False로 바꿀 것
 
 def v(x):
     return float(x.iloc[0]) if hasattr(x, "iloc") else float(x)
@@ -119,7 +122,7 @@ for ticker in TICKERS:
         plt.savefig(img)
         plt.close()
 
-        send_message(f"🧪 차트 전송 테스트: {ticker}")
+        send_message(message)
 
         send_photo(
         f"{ticker}\n종가: {close:.2f}\nRSI: {rsi:.1f}",
@@ -141,5 +144,24 @@ for ticker in TICKERS:
             state.loc[idx, "DaysLeft"] = days - 1
         else:
             state = state.drop(idx)
+            
+    # ===== 강제 차트 테스트 =====
+    if FORCE_TEST:
+        plt.figure(figsize=(10, 6))
+        plt.plot(df["Close"], label="Close")
+        plt.plot(df["MA60"], label="MA60")
+        plt.plot(df["MA120"], label="MA120")
+        plt.legend()
+        plt.title(f"{ticker} TEST Chart")
 
+        img = f"{ticker}_test.png"
+        plt.savefig(img)
+        plt.close()
+
+        send_message(f"🧪 차트 테스트 전송: {ticker}")
+        send_photo(
+            f"{ticker} 테스트\n종가: {close:.2f}\nRSI: {rsi:.1f}",
+            img,
+        )
+        
 save_state()
