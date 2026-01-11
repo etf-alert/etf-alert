@@ -5,7 +5,7 @@ import os
 
 TICKERS = ["QQQ", "QLD"]
 DAYS = 200
-THRESHOLD = 5  # 이동평균선과 0.3% 이내면 터치로 판단
+THRESHOLD = 0.3  # 이동평균선과 0.3% 이내면 터치로 판단
 
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
