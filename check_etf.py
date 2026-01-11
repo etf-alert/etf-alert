@@ -122,13 +122,13 @@ for ticker in TICKERS:
         # ===== 상단: 가격 차트 =====
         ax1.plot(df["Close"], label="Close", linewidth=1.5)
         ax1.plot(df["MA60"], label="MA60", linestyle="--")
-        ax1.plot(df["MA120"], label="MA120", linestyle="--")
+        ax1.plot(df["MA120"], label="MA120", linestyle="--", color="red")
         ax1.set_title(f"{ticker} Daily Chart")
         ax1.legend()
         ax1.grid(True)
 
         # ===== 하단: RSI =====
-        ax2.plot(df["RSI"], label="RSI", color="purple")
+        ax2.plot(df["RSI"], label="RSI(70/30)", color="purple")
         ax2.axhline(30, color="red", linestyle="--", linewidth=1)
         ax2.axhline(70, color="gray", linestyle="--", linewidth=1)
         ax2.set_ylim(0, 100)
@@ -178,13 +178,13 @@ for ticker in TICKERS:
         # ===== 상단: 가격 차트 =====
         ax1.plot(df["Close"], label="Close", linewidth=1.5)
         ax1.plot(df["MA60"], label="MA60", linestyle="--")
-        ax1.plot(df["MA120"], label="MA120", linestyle="--")
+        ax1.plot(df["MA120"], label="MA120", linestyle="--", color="red")
         ax1.set_title(f"{ticker} Daily Chart")
         ax1.legend()
         ax1.grid(True)
 
         # ===== 하단: RSI =====
-        ax2.plot(df["RSI"], label="RSI", color="purple")
+        ax2.plot(df["RSI"], label="RSI(70/30)", color="purple")
         ax2.axhline(30, color="red", linestyle="--", linewidth=1)
         ax2.axhline(70, color="gray", linestyle="--", linewidth=1)
         ax2.set_ylim(0, 100)
