@@ -14,6 +14,9 @@ TICKERS = ["QQQ", "QLD"]
 DAYS = 300
 STATE_FILE = "state.csv"
 
+def v(x):
+    return float(x.iloc[0]) if hasattr(x, "iloc") else float(x)
+
 # =====================
 # 텔레그램 전송
 # =====================
