@@ -20,12 +20,11 @@ for ticker in TICKERS:
     df["MA120"] = df["Close"].rolling(120).mean()
 
     last = df.iloc[-1]
-    close = last["Close"]
+    close = float(df["Close"].iloc[-1])
 
     for ma_name in ["MA60", "MA120"]:
-        ma = last[ma_name]
+        ma = float(last[ma_name])
         diff = abs(close - ma) / ma * 100
-
         if diff <= THRESHOLD:
             send_telegram(
                 f"{ticker} 종가 {close:.2f} → {ma_name} ({ma:.2f}) 근접"
