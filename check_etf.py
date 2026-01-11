@@ -118,11 +118,13 @@ for ticker in TICKERS:
         img = f"{ticker}.png"
         plt.savefig(img)
         plt.close()
-send_message(f"🧪 차트 전송 테스트: {ticker}")
+
+        send_message(f"🧪 차트 전송 테스트: {ticker}")
+
         send_photo(
-            message + f"\n\n종가: {close:.2f}\nRSI: {rsi:.1f}",
-            img,
-        )
+        f"{ticker}\n종가: {close:.2f}\nRSI: {rsi:.1f}",
+        img,
+    )
 
     # ===== 분할 진행 =====
     elif not row.empty:
