@@ -111,23 +111,42 @@ for ticker in TICKERS:
         state = state[state["Ticker"] != ticker]
         state.loc[len(state)] = [ticker, new_stage, new_days]
 
-        plt.figure(figsize=(10, 6))
-        plt.plot(df["Close"], label="Close")
-        plt.plot(df["MA60"], label="MA60")
-        plt.plot(df["MA120"], label="MA120")
-        plt.legend()
-        plt.title(f"{ticker} Daily Chart")
+        fig, (ax1, ax2) = plt.subplots(
+        2, 1, figsize=(10, 8),
+        gridspec_kw={"height_ratios": [3, 1]},
+        sharex=True
+        )
 
-        img = f"{ticker}.png"
+        # ===== 상단: 가격 차트 =====
+        ax1.plot(df["Close"], label="Close", linewidth=1.5)
+        ax1.plot(df["MA60"], label="MA60", linestyle="--")
+        ax1.plot(df["MA120"], label="MA120", linestyle="--")
+        ax1.set_title(f"{ticker} Daily Chart")
+        ax1.legend()
+        ax1.grid(True)
+
+        # ===== 하단: RSI =====
+        ax2.plot(df["RSI"], label="RSI", color="purple")
+        ax2.axhline(30, color="red", linestyle="--", linewidth=1)
+        ax2.axhline(70, color="gray", linestyle="--", linewidth=1)
+        ax2.set_ylim(0, 100)
+        ax2.legend()
+        ax2.grid(True)
+        
+        plt.tight_layout()
         plt.savefig(img)
         plt.close()
 
         send_message(message)
 
         send_photo(
-        f"{ticker}\n종가: {close:.2f}\nRSI: {rsi:.1f}",
-        img,
-    )
+            f"{ticker}\n"
+            f"종가: {close:.2f}\n"
+            f"MA60: {ma60:.2f}\n"
+            f"MA120: {ma120:.2f}\n"
+            f"RSI: {rsi:.1f}",
+            img,
+        )
 
     # ===== 분할 진행 =====
     elif not row.empty:
@@ -147,20 +166,39 @@ for ticker in TICKERS:
             
     # ===== 강제 차트 테스트 =====
     if FORCE_TEST:
-        plt.figure(figsize=(10, 6))
-        plt.plot(df["Close"], label="Close")
-        plt.plot(df["MA60"], label="MA60")
-        plt.plot(df["MA120"], label="MA120")
-        plt.legend()
-        plt.title(f"{ticker} TEST Chart")
+        fig, (ax1, ax2) = plt.subplots(
+        2, 1, figsize=(10, 8),
+        gridspec_kw={"height_ratios": [3, 1]},
+        sharex=True
+        )
 
-        img = f"{ticker}_test.png"
+        # ===== 상단: 가격 차트 =====
+        ax1.plot(df["Close"], label="Close", linewidth=1.5)
+        ax1.plot(df["MA60"], label="MA60", linestyle="--")
+        ax1.plot(df["MA120"], label="MA120", linestyle="--")
+        ax1.set_title(f"{ticker} Daily Chart")
+        ax1.legend()
+        ax1.grid(True)
+
+        # ===== 하단: RSI =====
+        ax2.plot(df["RSI"], label="RSI", color="purple")
+        ax2.axhline(30, color="red", linestyle="--", linewidth=1)
+        ax2.axhline(70, color="gray", linestyle="--", linewidth=1)
+        ax2.set_ylim(0, 100)
+        ax2.legend()
+        ax2.grid(True)
+        
+        plt.tight_layout()
         plt.savefig(img)
         plt.close()
 
         send_message(f"🧪 차트 테스트 전송: {ticker}")
         send_photo(
-            f"{ticker} 테스트\n종가: {close:.2f}\nRSI: {rsi:.1f}",
+            f"{ticker}\n"
+            f"종가: {close:.2f}\n"
+            f"MA60: {ma60:.2f}\n"
+            f"MA120: {ma120:.2f}\n"
+            f"RSI: {rsi:.1f}",
             img,
         )
         
