@@ -111,6 +111,8 @@ for ticker in TICKERS:
         state = state[state["Ticker"] != ticker]
         state.loc[len(state)] = [ticker, new_stage, new_days]
 
+        img = f"{ticker}.png" 
+        
         fig, (ax1, ax2) = plt.subplots(
         2, 1, figsize=(10, 8),
         gridspec_kw={"height_ratios": [3, 1]},
