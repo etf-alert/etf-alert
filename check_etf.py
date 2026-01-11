@@ -163,7 +163,7 @@ for ticker in TICKERS:
 
         if days > 0:
             send_message(
-                f"📅 {TODAY}\n"
+                f"📅📆🗓️⏰⏱️  {TODAY}\n"
                 f"📆 {ticker} 분할매수 진행\n"
                 f"Stage: {stage}\n"
                 f"남은 거래일: {days}"
