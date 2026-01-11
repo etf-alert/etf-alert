@@ -14,7 +14,7 @@ CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 TICKERS = ["QQQ", "QLD"]
 DAYS = 300
 STATE_FILE = "state.csv"
-FORCE_TEST = True   # 👈 테스트 끝나면 False로 바꿀 것
+FORCE_TEST = False   # 👈 테스트 끝나면 False로 바꿀 것
 
 def v(x):
     return float(x.iloc[0]) if hasattr(x, "iloc") else float(x)
@@ -82,7 +82,7 @@ for ticker in TICKERS:
         new_stage = "RSI"
         new_days = 40
         message = (
-            f"📅 {TODAY}\n"
+            f"🗓️ {TODAY}\n"
             f"🔥 {ticker} 3차 매수 재개\n"
             f"RSI {rsi:.1f} ≤ 30\n"
             f"MA120 하단 유지\n"
@@ -94,7 +94,7 @@ for ticker in TICKERS:
         new_stage = "MA120"
         new_days = 5
         message = (
-            f"📅 {TODAY}\n"
+            f"🗓️ {TODAY}\n"
             f"📉 {ticker} MA120 하향 돌파\n"
             f"➡️ 2차 매수 시작\n"
             f"50% / 5거래일"
@@ -105,7 +105,7 @@ for ticker in TICKERS:
         new_stage = "MA60"
         new_days = 5
         message = (
-            f"📅 {TODAY}\n"
+            f"🗓️ {TODAY}\n"
             f"📉 {ticker} MA60 하향 돌파\n"
             f"➡️ 1차 매수 시작\n"
             f"50% / 5거래일"
@@ -163,8 +163,8 @@ for ticker in TICKERS:
 
         if days > 0:
             send_message(
-                f"📅📆🗓️⏰⏱️  {TODAY}\n"
-                f"📆 {ticker} 분할매수 진행\n"
+                f"🗓️ {TODAY}\n"
+                f"⏳ {ticker} 분할매수 진행\n"
                 f"Stage: {stage}\n"
                 f"남은 거래일: {days}"
             )
@@ -202,7 +202,7 @@ for ticker in TICKERS:
         plt.close()
 
         send_message(
-            f"📅📆🗓️⏰⏱️ {TODAY}\n"
+            f"🗓️ {TODAY}\n"
             f"🧪 차트 테스트 전송: {ticker}")
         send_photo(
             f"{ticker}\n"
