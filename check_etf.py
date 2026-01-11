@@ -5,6 +5,8 @@ import os
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from datetime import datetime
+TODAY = datetime.now().strftime("%Y-%m-%d")
 
 BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
@@ -80,6 +82,7 @@ for ticker in TICKERS:
         new_stage = "RSI"
         new_days = 40
         message = (
+            f"📅 {TODAY}\n"
             f"🔥 {ticker} 3차 매수 재개\n"
             f"RSI {rsi:.1f} ≤ 30\n"
             f"MA120 하단 유지\n"
@@ -91,6 +94,7 @@ for ticker in TICKERS:
         new_stage = "MA120"
         new_days = 5
         message = (
+            f"📅 {TODAY}\n"
             f"📉 {ticker} MA120 하향 돌파\n"
             f"➡️ 2차 매수 시작\n"
             f"50% / 5거래일"
@@ -101,6 +105,7 @@ for ticker in TICKERS:
         new_stage = "MA60"
         new_days = 5
         message = (
+            f"📅 {TODAY}\n"
             f"📉 {ticker} MA60 하향 돌파\n"
             f"➡️ 1차 매수 시작\n"
             f"50% / 5거래일"
@@ -158,6 +163,7 @@ for ticker in TICKERS:
 
         if days > 0:
             send_message(
+                f"📅 {TODAY}\n"
                 f"📆 {ticker} 분할매수 진행\n"
                 f"Stage: {stage}\n"
                 f"남은 거래일: {days}"
@@ -195,7 +201,9 @@ for ticker in TICKERS:
         plt.savefig(img)
         plt.close()
 
-        send_message(f"🧪 차트 테스트 전송: {ticker}")
+        send_message(
+            f"📅 {TODAY}\n"
+            f"🧪 차트 테스트 전송: {ticker}")
         send_photo(
             f"{ticker}\n"
             f"종가: {close:.2f}\n"
