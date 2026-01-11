@@ -1,4 +1,3 @@
-send_telegram("✅ 테스트 메시지")
 import yfinance as yf
 import pandas as pd
 import requests
@@ -30,3 +29,4 @@ for ticker in TICKERS:
             send_telegram(
                 f"{ticker} 종가 {close:.2f} → {ma_name} ({ma:.2f}) 근접"
             )
+send_telegram("✅ 테스트 메시지")
