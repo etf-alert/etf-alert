@@ -5,7 +5,12 @@ import os
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from datetime import datetime, timedelta
+from datetime import datetime
+
+# =====================
+# 날짜 기준
+# =====================
+TODAY_UTC = datetime.utcnow().date()
 
 # =====================
 # 기본 설정
@@ -16,8 +21,6 @@ CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 TICKERS = ["QQQ", "QLD"]
 DAYS = 300
 STATE_FILE = "state.csv"
-
-TODAY_UTC = datetime.utcnow().date()
 
 # =====================
 # 유틸
@@ -60,7 +63,7 @@ def save_state():
 # 메인 로직
 # =====================
 for ticker in TICKERS:
-    df = yf.download(ticker, period=f"{DAYS}d", interval="1d")
+    df = yf.download(ticker, period=f"{DAYS}d", interval="1d", progress=False)
     if len(df) < 130:
         continue
 
@@ -68,21 +71,14 @@ for ticker in TICKERS:
     df["MA120"] = df["Close"].rolling(120).mean()
     df["RSI"] = calc_rsi(df["Close"])
 
+    # 📌 가장 최근 거래일 (미국장 기준)
     LAST_TRADING_DATE = df.index[-1].date()
-
-    # ✅ 실행 허용 조건
-    # 1) 오늘이 거래일
-    # 2) 월요일 아침(UTC 기준)이고, 마지막 거래일이 금요일
-    is_today_trade = LAST_TRADING_DATE == TODAY_UTC
-    is_monday_morning = (
-        TODAY_UTC.weekday() == 0 and
-        LAST_TRADING_DATE == TODAY_UTC - timedelta(days=3)
-    )
-
-    if not (is_today_trade or is_monday_morning):
-        continue
-
     trade_day_str = df.index[-1].strftime("%Y-%m-%d (%a)")
+
+    # 📌 cron(UTC 23:00, 0-4) 기준
+    # → 월요일 아침 실행 시 LAST_TRADING_DATE = 금요일 → 정상 전송
+    if LAST_TRADING_DATE > TODAY_UTC:
+        continue
 
     prev = df.iloc[-2]
     last = df.iloc[-1]
@@ -99,7 +95,7 @@ for ticker in TICKERS:
     row = state[state["Ticker"] == ticker]
 
     # =====================
-    # 📊 차트 생성 (항상 1회)
+    # 📊 차트 생성 (매일 1회)
     # =====================
     img = f"{ticker}.png"
 
@@ -109,6 +105,7 @@ for ticker in TICKERS:
         sharex=True
     )
 
+    # 가격 차트
     ax1.plot(df["Close"], label="Close", linewidth=1.5)
     ax1.plot(df["MA60"], label="MA60", linestyle="--")
     ax1.plot(df["MA120"], label="MA120", linestyle="--", color="red")
@@ -116,7 +113,8 @@ for ticker in TICKERS:
     ax1.legend()
     ax1.grid(True)
 
-    ax2.plot(df["RSI"], label="RSI (70/30)", color="purple")
+    # RSI
+    ax2.plot(df["RSI"], label="RSI(70/30)", color="purple")
     ax2.axhline(30, color="red", linestyle="--", linewidth=1)
     ax2.axhline(70, color="gray", linestyle="--", linewidth=1)
     ax2.set_ylim(0, 100)
