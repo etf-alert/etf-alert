@@ -6,6 +6,8 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
+print(ticker, df.index[-1])
+
 # =====================
 # 설정
 # =====================
