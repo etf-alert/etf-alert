@@ -15,7 +15,7 @@ CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 # =====================
 # 설정
 # =====================
-TICKERS = ["TQQQ", "SOXL", "TNA", "BULZ", "TECL", "WEBL", "UPRO", "WANT"]
+TICKERS = ["SOXL", "BULZ", "TQQQ", "TECL", "WEBL", "UPRO", "WANT", "HIBL", "FNGU", "TNA", "RETL", "UDOW", "NAIL", "LABU", "PILL", "MIDU", "CURE", "FAS", "TPOR", "DRN", "DUSL", "DFEN", "UTSL", "BNKU", "DPST"]
 DAYS = 300
 IMG_PATH = "rsi_table.png"
 
