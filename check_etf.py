@@ -90,7 +90,12 @@ for ticker in TICKERS:
 # =====================
 table_df = pd.DataFrame(rows, columns=["Ticker", "Price", "RSI"])
 
-fig, ax = plt.subplots(figsize=(6, 0.5 + len(table_df) * 0.5))
+# ✅ RSI 오름차순 정렬 (N/A는 맨 아래)
+table_df["RSI_num"] = pd.to_numeric(table_df["RSI"], errors="coerce")
+table_df = table_df.sort_values("RSI_num", ascending=True)
+table_df = table_df.drop(columns=["RSI_num"]).reset_index(drop=True)
+
+fig, ax = plt.subplots(figsize=(5, 0.5 + len(table_df) * 0.4))
 ax.axis("off")
 
 table = ax.table(
@@ -102,16 +107,20 @@ table = ax.table(
 
 table.auto_set_font_size(False)
 table.set_fontsize(10)
-table.scale(1, 1.4)
+table.scale(0.8, 1.4)
+
+for j in range(len(table_df.columns)):
+    table[(0, j)].set_facecolor("#ddeeff")
+    table[(0, j)].set_text_props(weight="bold")
 
 # ✅ RSI 색상
 for i in range(len(table_df)):
     try:
         rsi_val = float(table_df.iloc[i]["RSI"])
-        if rsi_val <= 30:
+        if rsi_val <= 50:
             table[(i + 1, 2)].set_facecolor("#ffcccc")  # 과매도
-        elif rsi_val >= 70:
-            table[(i + 1, 2)].set_facecolor("#ccccff")  # 과매수
+       # elif rsi_val >= 70:
+          # table[(i + 1, 2)].set_facecolor("#ccccff")  # 과매수
     except:
         pass
 
