@@ -6,8 +6,6 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-print(ticker, df.index[-1])
-
 # =====================
 # 설정
 # =====================
@@ -124,3 +122,4 @@ send_photo(
     caption=f"📊 ETF RSI & 종가\n🗓 기준일: {trade_date}",
     path=IMG_PATH
 )
+print(ticker, df.index[-1])
